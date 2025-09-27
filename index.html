@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Thornveil Shop — Frontend Demo</title>
+<meta name="description" content="Single-file frontend demo: product catalog, cart, admin add, checkout mock." />
+<style>
+  :root{
+    --bg:#0f1724; --card:#0b1220; --muted:#9aa4b2; --accent:#7c3aed; --glass: rgba(255,255,255,0.03);
+    --radius:14px; font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%; margin:0; background:linear-gradient(180deg,#071025 0%, #071e2f 100%); color:#e6eef6; -webkit-font-smoothing:antialiased;}
+  a{color:inherit}
+  .container{max-width:1100px; margin:28px auto; padding:20px;}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+  .brand{display:flex;align-items:center;gap:12px}
+  .logo{width:48px;height:48px;background:linear-gradient(135deg,var(--accent),#3b82f6);border-radius:10px;display:flex;align-items:center;justify-content:center;font-weight:700}
+  h1{font-size:20px;margin:0}
+  .search{flex:1; margin-left:12px}
+  input[type="search"]{width:100%;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,0.06);background:var(--glass);color:var(--muted)}
+  .btn{background:var(--accent);color:white;padding:10px 12px;border-radius:10px;border:none;cursor:pointer}
+  .btn.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06)}
+  .layout{display:grid;grid-template-columns:1fr 320px;gap:20px}
+  main{min-height:60vh}
+  .hero{background:linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:18px;border-radius:12px; margin-bottom:18px; display:flex;gap:18px;align-items:center}
+  .hero img{width:240px;height:140px;object-fit:cover;border-radius:10px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:16px}
+  .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:12px;border-radius:12px;border:1px solid rgba(255,255,255,0.03)}
+  .card img{width:100%;height:140px;object-fit:cover;border-radius:8px}
+  .card h3{margin:8px 0 6px;font-size:16px}
+  .price{font-weight:700}
+  .muted{color:var(--muted); font-size:13px}
+  /* cart drawer */
+  .cart-drawer{position:fixed;right:18px;top:18px;width:360px;max-height:80vh;background:linear-gradient(180deg,#06111b, #081826);border-radius:12px;padding:12px;border:1px solid rgba(255,255,255,0.04);box-shadow:0 10px 30px rgba(2,6,23,0.6);display:flex;flex-direction:column;gap:10px}
+  .cart-items{overflow:auto;max-height:46vh;padding-right:6px}
+  .cart-row{display:flex;gap:10px;align-items:center;border-bottom:1px dashed rgba(255,255,255,0.02);padding:8px 0}
+  .qty-btn{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:4px 8px;border-radius:6px;color:var(--muted);cursor:pointer}
+  .small{font-size:13px}
+  /* modal */
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center}
+  .modal{background:#06111b;padding:18px;border-radius:12px;width:100%;max-width:640px;border:1px solid rgba(255,255,255,0.03)}
+  form .row{display:flex;gap:8px}
+  input,textarea{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--muted)}
+  footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
+  .topline{display:flex;gap:8px;align-items:center}
+  @media(max-width:880px){ .layout{grid-template-columns:1fr} .cart-drawer{position:static;width:100%;max-height:none} .hero img{display:none} }
+</style>
+</head>
+<body>
+<div class="container" role="application">
+  <header>
+    <div class="brand">
+      <div class="logo">TV</div>
+      <div>
+        <h1>Thornveil Shop</h1>
+        <div class="muted small">Frontend demo • localStorage cart • mock checkout</div>
+      </div>
+    </div>
+
+    <div style="flex:1;margin-left:18px">
+      <div class="search">
+        <input id="search" type="search" placeholder="Search products, e.g. notebook, pen..." />
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;align-items:center;margin-left:12px">
+      <button id="adminToggle" class="btn ghost">Add Product</button>
+      <button id="openCart" class="btn">Cart (<span id="cartCount">0</span>)</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <main>
+      <section class="hero">
+        <div style="flex:1">
+          <h2 style="margin:0 0 8px">Launch your online business — frontend only</h2>
+          <p class="muted">This single HTML file provides product browsing, cart with persistence, admin product add, a contact form, and a mock checkout flow. Customize images & text, then integrate a backend or payment gateway when ready.</p>
+          <div style="margin-top:12px;display:flex;gap:8px">
+            <button onclick="document.getElementById('search').focus()" class="btn">Browse products</button>
+            <button onclick="openContact()" class="btn ghost">Contact</button>
+          </div>
+        </div>
+        <img src="https://picsum.photos/seed/hero/540/360" alt="hero">
+      </section>
+
+      <section>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <h3 style="margin:0">Products</h3>
+          <div class="muted small">Showing <span id="visibleCount">0</span> items</div>
+        </div>
+
+        <div id="productsGrid" class="grid" aria-live="polite"></div>
+      </section>
+
+      <section style="margin-top:18px">
+        <h3 style="margin:0 0 8px">About</h3>
+        <div class="card muted small">Thornveil Shop — a frontend-first demo. Swap localStorage for a real API and add Stripe/PayPal when you want real payments. Built to be simple and easy to adapt.</div>
+      </section>
+
+      <footer>
+        © <span id="year"></span> Thornveil Shop — frontend demo
+      </footer>
+    </main>
+
+    <!-- Cart drawer -->
+    <aside id="cartDrawer" class="cart-drawer" aria-hidden="true" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-weight:700">Your Cart</div>
+          <div class="muted small" id="cartSubtitle">0 items</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button id="clearCartBtn" class="btn ghost">Clear</button>
+          <button id="closeCart" class="btn">Close</button>
+        </div>
+      </div>
+
+      <div id="cartItems" class="cart-items"></div>
+
+      <div style="margin-top:auto">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <div class="muted small">Subtotal</div>
+          <div style="font-weight:700" id="subtotal">$0.00</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button id="checkoutBtn" class="btn" style="flex:1">Checkout</button>
+          <button id="continueShopping" class="btn ghost">Continue</button>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<!-- Admin modal -->
+<div id="adminModal" class="overlay" style="display:none" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Add product">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <strong>Add Product (Admin)</strong>
+      <button onclick="toggleAdmin(false)" class="btn ghost">Close</button>
+    </div>
+    <form id="adminForm">
+      <div style="display:grid;gap:8px">
+        <input name="title" placeholder="Title (e.g. Minimal Notebook)" required />
+        <input name="price" type="number" step="0.01" placeholder="Price (e.g. 9.99)" required />
+        <input name="img" placeholder="Image URL (optional)" />
+        <textarea name="desc" rows="3" placeholder="Short description"></textarea>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button type="button" onclick="toggleAdmin(false)" class="btn ghost">Cancel</button>
+          <button class="btn" type="submit">Add Product</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Contact modal -->
+<div id="contactModal" class="overlay" style="display:none" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Contact form">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <strong>Contact Us</strong>
+      <button onclick="closeContact()" class="btn ghost">Close</button>
+    </div>
+    <form id="contactForm">
+      <div style="display:grid;gap:8px">
+        <input name="name" placeholder="Your name" required />
+        <input name="email" placeholder="Your email" type="email" required />
+        <textarea name="message" rows="4" placeholder="Message" required></textarea>
+        <div style="display:flex;gap:8px;justify-content:flex-end">
+          <button type="button" onclick="closeContact()" class="btn ghost">Cancel</button>
+          <button class="btn" type="submit">Send</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Checkout modal -->
+<div id="checkoutModal" class="overlay" style="display:none" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Checkout">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <strong>Checkout (Mock)</strong>
+      <button onclick="toggleCheckout(false)" class="btn ghost">Close</button>
+    </div>
+
+    <div id="checkoutBody">
+      <div class="muted small" id="checkoutSummary"></div>
+      <form id="checkoutForm" style="margin-top:8px">
+        <input name="name" placeholder="Full name" required />
+        <input name="email" placeholder="Email" type="email" required />
+        <input name="address" placeholder="Shipping address" required />
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+          <button type="button" onclick="toggleCheckout(false)" class="btn ghost">Cancel</button>
+          <button class="btn" type="submit">Pay (mock)</button>
+        </div>
+      </form>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // Single-file frontend store logic
+  const STORAGE_PRODUCTS = 'tv_products_v1';
+  const STORAGE_CART = 'tv_cart_v1';
+
+  const sampleProducts = [
+    { id: 1, title: "Minimal Notebook", price: 9.99, desc: "A clean notebook for ideas.", img: "https://picsum.photos/seed/notebook/800/600" },
+    { id: 2, title: "Focus Pen", price: 4.50, desc: "Smooth-writing metal pen.", img: "https://picsum.photos/seed/pen/800/600" },
+    { id: 3, title: "Desk Sticker Pack", price: 6.25, desc: "Decorate your workspace.", img: "https://picsum.photos/seed/stickers/800/600" },
+  ];
+
+  // UI elements
+  const productsGrid = document.getElementById('productsGrid');
+  const visibleCount = document.getElementById('visibleCount');
+  const searchInput = document.getElementById('search');
+  const cartCount = document.getElementById('cartCount');
+  const cartDrawer = document.getElementById('cartDrawer');
+  const cartItemsEl = document.getElementById('cartItems');
+  const subtotalEl = document.getElementById('subtotal');
+  const cartSubtitle = document.getElementById('cartSubtitle');
+
+  // modals
+  const adminModal = document.getElementById('adminModal');
+  const adminForm = document.getElementById('adminForm');
+  const contactModal = document.getElementById('contactModal');
+  const contactForm = document.getElementById('contactForm');
+  const checkoutModal = document.getElementById('checkoutModal');
+  const checkoutForm = document.getElementById('checkoutForm');
+  const checkoutSummary = document.getElementById('checkoutSummary');
+
+  // state helpers
+  function loadProducts(){
+    try{
+      const raw = localStorage.getItem(STORAGE_PRODUCTS);
+      if(!raw) { localStorage.setItem(STORAGE_PRODUCTS, JSON.stringify(sampleProducts)); return sampleProducts.slice(); }
+      return JSON.parse(raw);
+    }catch(e){ return sampleProducts.slice(); }
+  }
+  function saveProducts(list){ localStorage.setItem(STORAGE_PRODUCTS, JSON.stringify(list)); }
+
+  function loadCart(){
+    try{
+      const raw = localStorage.getItem(STORAGE_CART);
+      if(!raw) return {};
+      return JSON.parse(raw);
+    }catch(e){ return {}; }
+  }
+  function saveCart(cart){ localStorage.setItem(STORAGE_CART, JSON.stringify(cart)); }
+
+  let products = loadProducts();
+  let cart = loadCart();
+
+  // render functions
+  function renderProducts(filter=''){
+    productsGrid.innerHTML = '';
+    const q = filter.trim().toLowerCase();
+    const visible = products.filter(p => !q || p.title.toLowerCase().includes(q) || p.desc.toLowerCase().includes(q));
+    visibleCount.textContent = visible.length;
+    if(visible.length === 0){
+      productsGrid.innerHTML = `<div class="muted">No products found</div>`;
+      return;
+    }
+    visible.forEach(p=>{
+      const card = document.createElement('article');
+      card.className = 'card';
+      card.innerHTML = `
+        <img loading="lazy" src="${p.img}" alt="${escapeHtml(p.title)}">
+        <h3>${escapeHtml(p.title)}</h3>
+        <div class="muted small">${escapeHtml(p.desc)}</div>
+        <div style="margin-top:10px;display:flex;justify-content:space-between;align-items:center">
+          <div class="price">$${Number(p.price).toFixed(2)}</div>
+          <div style="display:flex;gap:6px">
+            <button class="btn ghost" onclick="openDetails(${p.id})">Details</button>
+            <button class="btn" onclick="addToCart(${p.id})">Add</button>
+          </div>
+        </div>
+      `;
+      productsGrid.appendChild(card);
+    });
+  }
+
+  function renderCart(){
+    const entries = Object.entries(cart).map(([id,qty])=>({product: products.find(p => p.id===Number(id)), qty}));
+    cartItemsEl.innerHTML = '';
+    if(entries.length === 0){
+      cartItemsEl.innerHTML = `<div class="muted">Your cart is empty.</div>`;
+    } else {
+      entries.forEach(({product, qty})=>{
+        if(!product) return;
+        const row = document.createElement('div');
+        row.className = 'cart-row';
+        row.innerHTML = `
+          <img src="${product.img}" alt="" style="width:64px;height:48px;object-fit:cover;border-radius:6px">
+          <div style="flex:1">
+            <div style="font-weight:700">${escapeHtml(product.title)}</div>
+            <div class="muted small">$${product.price.toFixed(2)} x ${qty} = $${(product.price*qty).toFixed(2)}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+            <div style="display:flex;gap:6px">
+              <button class="qty-btn" onclick="updateQty(${product.id}, ${qty-1})">−</button>
+              <div class="small" style="min-width:22px;text-align:center">${qty}</div>
+              <button class="qty-btn" onclick="updateQty(${product.id}, ${qty+1})">+</button>
+            </div>
+            <button class="qty-btn" style="margin-top:4px" onclick="removeFromCart(${product.id})">Remove</button>
+          </div>
+        `;
+        cartItemsEl.appendChild(row);
+      });
+    }
+    const subtotal = entries.reduce((s,it)=> s + (it.product? it.product.price * it.qty : 0), 0);
+    subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
+    const totalItems = entries.reduce((s,it)=> s + it.qty, 0);
+    cartSubtitle.textContent = `${totalItems} item${totalItems===1?'':'s'}`;
+    cartCount.textContent = totalItems;
+  }
+
+  // actions
+  function addToCart(id, qty=1){
+    const productExists = products.some(p => p.id === id);
+    if(!productExists){ alert('Product not found'); return; }
+    cart[id] = (cart[id] || 0) + qty;
+    saveCart(cart);
+    renderCart();
+    // flash open cart briefly
+    showCart();
+  }
+
+  function updateQty(id, qty){
+    if(qty <= 0){ delete cart[id]; } else { cart[id] = qty; }
+    saveCart(cart);
+    renderCart();
+  }
+  function removeFromCart(id){
+    delete cart[id];
+    saveCart(cart);
+    renderCart();
+  }
+  function clearCart(){
+    cart = {};
+    saveCart(cart);
+    renderCart();
+  }
+
+  // UI toggles
+  function showCart(){ cartDrawer.style.display = 'flex'; cartDrawer.setAttribute('aria-hidden','false'); renderCart(); }
+  function hideCart(){ cartDrawer.style.display = 'none'; cartDrawer.setAttribute('aria-hidden','true'); }
+
+  document.getElementById('openCart').addEventListener('click', ()=> showCart());
+  document.getElementById('closeCart').addEventListener('click', ()=> hideCart());
+  document.getElementById('continueShopping').addEventListener('click', ()=> hideCart());
+  document.getElementById('clearCartBtn').addEventListener('click', ()=> { if(confirm('Clear cart?')) clearCart(); });
+
+  // admin modal
+  function toggleAdmin(show=true){
+    adminModal.style.display = show ? 'flex' : 'none';
+    adminModal.setAttribute('aria-hidden', show? 'false':'true');
+  }
+  document.getElementById('adminToggle').addEventListener('click', ()=> toggleAdmin(true));
+  adminForm.addEventListener('submit', (ev)=>{
+    ev.preventDefault();
+    const fd = new FormData(adminForm);
+    const title = (fd.get('title') || '').toString().trim();
+    const price = parseFloat(fd.get('price'));
+    const img = (fd.get('img') || '').toString().trim() || `https://picsum.photos/seed/${Date.now()}/800/600`;
+    const desc = (fd.get('desc') || '').toString().trim();
+    if(!title || !price || isNaN(price)){ alert('Please provide valid title and price'); return; }
+    const nextId = products.reduce((m,p)=> Math.max(m,p.id), 0) + 1;
+    products.unshift({ id: nextId, title, price: Number(price), desc, img });
+    saveProducts(products);
+    renderProducts(searchInput.value);
+    toggleAdmin(false);
+    adminForm.reset();
+    alert('Product added (frontend only).');
+  });
+
+  // contact modal
+  function openContact(){ contactModal.style.display = 'flex'; contactModal.setAttribute('aria-hidden','false'); }
+  function closeContact(){ contactModal.style.display = 'none'; contactModal.setAttribute('aria-hidden','true'); }
+  contactForm.addEventListener('submit', (ev)=>{
+    ev.preventDefault();
+    const fd = new FormData(contactForm);
+    const name = (fd.get('name')||'').toString().trim();
+    const email = (fd.get('email')||'').toString().trim();
+    const msg = (fd.get('message')||'').toString().trim();
+    if(!name || !email || !msg){ alert('Please fill all fields'); return; }
+    closeContact();
+    contactForm.reset();
+    alert(`Thanks ${name}! Message received (frontend mock). We'll reply to ${email}.`);
+  });
+
+  // checkout
+  function toggleCheckout(show=true){
+    checkoutModal.style.display = show ? 'flex' : 'none';
+    checkoutModal.setAttribute('aria-hidden', show? 'false':'true');
+    if(show) {
+      const entries = Object.entries(cart).map(([id,qty])=>({product: products.find(p=>p.id===Number(id)), qty}));
+      const subtotal = entries.reduce((s,it)=> s + (it.product? it.product.price*it.qty:0), 0);
+      checkoutSummary.textContent = `${entries.length} items — Subtotal: $${subtotal.toFixed(2)}`;
+    }
+  }
+  document.getElementById('checkoutBtn').addEventListener('click', ()=> {
+    if(Object.keys(cart).length === 0){ alert('Your cart is empty'); return; }
+    toggleCheckout(true);
+  });
+  checkoutForm.addEventListener('submit', (ev)=>{
+    ev.preventDefault();
+    const fd = new FormData(checkoutForm);
+    const name = (fd.get('name')||'').toString().trim();
+    const email = (fd.get('email')||'').toString().trim();
+    const address = (fd.get('address')||'').toString().trim();
+    if(!name || !email || !address){ alert('Please complete the form'); return; }
+    // Mock processing:
+    toggleCheckout(false);
+    clearCart();
+    checkoutForm.reset();
+    alert(`Thank you ${name}! Mock payment accepted. Confirmation sent to ${email}.`);
+  });
+
+  // product details (very small)
+  function openDetails(id){
+    const p = products.find(x=>x.id===id);
+    if(!p) return;
+    const html = `
+      <div style="padding:12px">
+        <div style="display:flex;gap:12px">
+          <img src="${p.img}" style="width:180px;height:120px;object-fit:cover;border-radius:8px">
+          <div style="flex:1">
+            <div style="font-weight:700">${escapeHtml(p.title)}</div>
+            <div class="muted small" style="margin:8px 0">${escapeHtml(p.desc)}</div>
+            <div style="font-weight:700">$${Number(p.price).toFixed(2)}</div>
+            <div style="margin-top:8px;display:flex;gap:8px">
+              <button class="btn" onclick="addToCart(${p.id}); closeLightbox();">Add to cart</button>
+              <button class="btn ghost" onclick="closeLightbox()">Close</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    showLightbox(html);
+  }
+
+  // tiny lightbox for details
+  function showLightbox(html){
+    let overlay = document.createElement('div');
+    overlay.className = 'overlay';
+    overlay.style.zIndex = 9999;
+    overlay.innerHTML = `<div class="modal">${html}</div>`;
+    overlay.addEventListener('click', (e)=>{ if(e.target === overlay) overlay.remove(); });
+    document.body.appendChild(overlay);
+  }
+  function closeLightbox(){ const ol = document.querySelector('body > .overlay'); if(ol) ol.remove(); }
+
+  // utilities
+  function escapeHtml(s){ return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+  // wire search
+  searchInput.addEventListener('input', ()=> renderProducts(searchInput.value));
+
+  // persistence update on page unload
+  window.addEventListener('beforeunload', ()=> { saveProducts(products); saveCart(cart); });
+
+  // init
+  document.getElementById('year').textContent = new Date().getFullYear();
+  renderProducts();
+  renderCart();
+
+  // small helpers on page
+  document.addEventListener('keydown', (e)=> {
+    if(e.key === 'Escape') {
+      toggleAdmin(false);
+      closeContact();
+      toggleCheckout(false);
+      closeLightbox();
+      hideCart();
+    }
+  });
+
+  // Expose some functions to global so buttons inline can call (simple demo)
+  window.addToCart = addToCart;
+  window.updateQty = updateQty;
+  window.removeFromCart = removeFromCart;
+  window.openDetails = openDetails;
+  window.toggleAdmin = toggleAdmin;
+  window.openContact = openContact;
+  window.toggleCheckout = toggleCheckout;
+  window.clearCart = function(){ if(confirm('Clear cart?')) clearCart(); };
+
+</script>
+</body>
+</html>
